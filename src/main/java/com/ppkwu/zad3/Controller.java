@@ -8,6 +8,7 @@ import net.fortuna.ical4j.model.Date;
 import net.fortuna.ical4j.model.component.VEvent;
 import net.fortuna.ical4j.model.property.*;
 import net.fortuna.ical4j.util.UidGenerator;
+import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -18,27 +19,23 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-
-import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.URISyntaxException;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.List;
+
 
 @RestController
 public class Controller {
 
 
     @GetMapping(value = "/calendar")
-    public ResponseEntity<Resource> downloadFile(Integer year, Integer month) throws IOException, ParseException, URISyntaxException {
+    public void downloadFile(Integer year, Integer month, HttpServletResponse response) throws IOException, ParseException, URISyntaxException {
         if(year<0||month<0||month>12)throw new RuntimeException("wrong parameter values.");
         String fixedMonth = month.toString();
-        if(fixedMonth.length()>1)fixedMonth = "0"+month;
+        if(fixedMonth.length()<2)fixedMonth = "0"+month;
         String calendarUrl="http://www.weeia.p.lodz.pl/pliki_strony_kontroler/kalendarz.php?rok="+year+"&miesiac="+fixedMonth+"&lang=1";
 
         Document doc = Jsoup.connect(calendarUrl).get();
@@ -51,7 +48,7 @@ public class Controller {
         UidGenerator uidgen = () -> new Uid("testUid");
         for (Element element : elements) {
             if(element.attr("class").equals("active")) {
-                VEvent vEvent = new VEvent(new Date(year + month + element.child(0).text()), element.getElementsByTag("p").text());
+                VEvent vEvent = new VEvent(new Date(year.toString() + fixedMonth + element.child(0).text()), element.getElementsByTag("p").text());
                 vEvent.getProperties().add(uidgen.generateUid());
                 Url url = new Url();
                 url.setValue(calendarUrl);
@@ -60,15 +57,13 @@ public class Controller {
             }
         }
 
-
         FileOutputStream fout = new FileOutputStream("calendar.ics");
 
         CalendarOutputter outputter = new CalendarOutputter();
         outputter.output(calendar, fout);
-        Resource resource = new ClassPathResource("/mycalendar.ics");
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
-                .body(resource);
+
+        InputStream inputStream = new FileInputStream(new File("calendar.ics"));
+        IOUtils.copy(inputStream, response.getOutputStream());
+
     }
 }

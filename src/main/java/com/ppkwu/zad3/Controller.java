@@ -64,6 +64,7 @@ public class Controller {
 
         InputStream inputStream = new FileInputStream(new File("calendar.ics"));
         IOUtils.copy(inputStream, response.getOutputStream());
+        response.setContentType("text/calendar");
 
     }
 }

@@ -7,7 +7,7 @@
 ### returns
 An ics file calendar for year and month given in parameters. If any of the parameters are incorrect, or there are no events in the given month, an exception is thrown.
 
-###Example
+### Example
 http://localhost:8080/calendar?year=2020&month=3
 
 Downloads an ics file for march 2020 of this content:

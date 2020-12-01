@@ -4,12 +4,13 @@ import net.fortuna.ical4j.data.CalendarBuilder;
 import net.fortuna.ical4j.data.CalendarOutputter;
 import net.fortuna.ical4j.data.ParserException;
 import net.fortuna.ical4j.model.Calendar;
+import net.fortuna.ical4j.model.Date;
 import net.fortuna.ical4j.model.component.VEvent;
-import net.fortuna.ical4j.model.property.CalScale;
-import net.fortuna.ical4j.model.property.ProdId;
-import net.fortuna.ical4j.model.property.Version;
+import net.fortuna.ical4j.model.property.*;
+import net.fortuna.ical4j.util.UidGenerator;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
@@ -24,8 +25,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.*;
+import java.net.URISyntaxException;
+import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -33,7 +35,7 @@ public class Controller {
 
 
     @GetMapping(value = "/calendar")
-    public ResponseEntity<Resource> downloadFile(Integer year, Integer month) throws IOException {
+    public ResponseEntity<Resource> downloadFile(Integer year, Integer month) throws IOException, ParseException, URISyntaxException {
         if(year<0||month<0||month>12)throw new RuntimeException("wrong parameter values.");
         String fixedMonth = month.toString();
         if(fixedMonth.length()>1)fixedMonth = "0"+month;
@@ -42,11 +44,22 @@ public class Controller {
         Document doc = Jsoup.connect(calendarUrl).get();
         Elements elements = doc.select("td");
 
-
         Calendar calendar = new Calendar();
         calendar.getProperties().add(new ProdId("-//Zientak//iCal4j 1.0//EN"));
         calendar.getProperties().add(Version.VERSION_2_0);
         calendar.getProperties().add(CalScale.GREGORIAN);
+        UidGenerator uidgen = () -> new Uid("testUid");
+        for (Element element : elements) {
+            if(element.attr("class").equals("active")) {
+                VEvent vEvent = new VEvent(new Date(year + month + element.child(0).text()), element.getElementsByTag("p").text());
+                vEvent.getProperties().add(uidgen.generateUid());
+                Url url = new Url();
+                url.setValue(calendarUrl);
+                vEvent.getProperties().add(url);
+                calendar.getComponents().add(vEvent);
+            }
+        }
+
 
         FileOutputStream fout = new FileOutputStream("calendar.ics");
 

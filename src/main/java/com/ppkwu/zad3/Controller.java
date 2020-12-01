@@ -1,8 +1,6 @@
 package com.ppkwu.zad3;
 
-import net.fortuna.ical4j.data.CalendarBuilder;
 import net.fortuna.ical4j.data.CalendarOutputter;
-import net.fortuna.ical4j.data.ParserException;
 import net.fortuna.ical4j.model.Calendar;
 import net.fortuna.ical4j.model.Date;
 import net.fortuna.ical4j.model.component.VEvent;
@@ -13,11 +11,6 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,6 +27,7 @@ public class Controller {
     @GetMapping(value = "/calendar")
     public void downloadFile(Integer year, Integer month, HttpServletResponse response) throws IOException {
         if (year < 0 || month < 0 || month > 12) throw new RuntimeException("wrong parameter values.");
+        month=month-1;
         String fixedMonth = month.toString();
         if (fixedMonth.length() < 2) fixedMonth = "0" + month;
         String calendarUrl = "http://www.weeia.p.lodz.pl/pliki_strony_kontroler/kalendarz.php?rok=" + year + "&miesiac=" + fixedMonth + "&lang=1";
